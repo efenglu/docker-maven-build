@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>mavenDocker</artifactId>
+        <groupId>io.github.efenglu.examples.mavendocker</groupId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>spotify</artifactId>
+
+    <properties>
+        <docker.registry>docker.com</docker.registry>
+        <docker.org>${project.groupId}</docker.org>
+        <docker.image>${project.artifactId}</docker.image>
+
+        <dockerfile.build.noCache>true</dockerfile.build.noCache>
+        <dockerfile.build.pullNewerImage>true</dockerfile.build.pullNewerImage>
+
+        <docker.deploy.tag>${project.version}</docker.deploy.tag>
+
+        <timestamp>${maven.build.timestamp}</timestamp>
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+        <maven.buildNumber.timestamp.format>${maven.build.timestamp.format}</maven.buildNumber.timestamp.format>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>example-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <extensions>
+            <extension>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-extension</artifactId>
+                <version>1.3.4</version>
+            </extension>
+        </extensions>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unpack</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>example-service</artifactId>
+                                    <version>${project.version}</version>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>1.4.9</version>
+                <configuration>
+                    <buildArgs>
+                        <DEPENDENCY>target/dependency</DEPENDENCY>
+                    </buildArgs>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <Specification-Title>${project.name}</Specification-Title>
+                            <Specification-Version>${project.version}</Specification-Version>
+                            <Implementation-Title>${project.groupId}.${project.artifactId}</Implementation-Title>
+                            <Implementation-Build-Time>${maven.build.timestamp}</Implementation-Build-Time>
+                            <X-Docker-Repo>${docker.org}/${docker.image}:${project.version}</X-Docker-Repo>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>build</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                        <configuration>
+                            <repository>${docker.org}/${docker.image}</repository>
+                            <tag>${project.version}</tag>
+                            <classifier>docker-local</classifier>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>tag</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>tag</goal>
+                        </goals>
+                        <configuration>
+                            <repository>${docker.org}/${docker.image}</repository>
+                            <tag>latest</tag>
+                            <classifier>docker-local-latest</classifier>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>tag-repo-deploy</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>tag</goal>
+                        </goals>
+                        <configuration>
+                            <repository>${docker.registry}/${docker.org}/${docker.image}</repository>
+                            <tag>${docker.deploy.tag}</tag>
+                            <classifier>docker-info-tag</classifier>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>push-version</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>push</goal>
+                        </goals>
+                        <configuration>
+                            <repository>${docker.registry}/${docker.org}/${docker.image}</repository>
+                            <tag>${docker.deploy.tag}</tag>
+                            <classifier>docker-info</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+
+</project>
