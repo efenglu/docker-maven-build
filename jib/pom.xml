@@ -19,6 +19,14 @@
         </dependency>
     </dependencies>
 
+    <properties>
+        <jib.skip.install>false</jib.skip.install>
+        <jib.skip.deploy>true</jib.skip.deploy>
+        <jib.app.port>8080</jib.app.port>
+        <jib.dtr.auth.username></jib.dtr.auth.username>
+        <jib.dtr.auth.password></jib.dtr.auth.password>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -27,10 +35,30 @@
                 <version>1.0.1</version>
                 <executions>
                     <execution>
+                        <id>docker daemon install</id>
                         <phase>install</phase>
                         <goals>
                             <goal>dockerBuild</goal>
                         </goals>
+                        <configuration>
+                            <skip>${jib.skip.install}</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>DTR Deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${jib.skip.deploy}</skip>
+                            <to>
+                                <auth>
+                                    <username>${jib.dtr.auth.username}</username>
+                                    <password>${jib.dtr.auth.password}</password>
+                                </auth>
+                            </to>
+                        </configuration>
                     </execution>
                 </executions>
                 <configuration>
@@ -38,6 +66,15 @@
                     <to>
                         <image>${project.groupId}/${project.artifactId}:${project.version}</image>
                     </to>
+                    <container>
+                        <ports>
+                            <port>${jib.app.port}</port>
+                        </ports>
+                        <jvmFlags>
+                            <jvmFlag>-Xms512m</jvmFlag>
+                            <jvmFlag>-Xmx1024m</jvmFlag>
+                        </jvmFlags>
+                    </container>
                 </configuration>
             </plugin>
         </plugins>
